@@ -1,3 +1,4 @@
+
 <!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HERITAGE LAND SURVEY</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#392719"><link rel="apple-touch-icon" href="icon-192.png"><link rel="icon" href="icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Heritage Survey"><style>/* required styles */
 
 .leaflet-pane,
@@ -703,7 +704,20 @@ function manualAdd(){let lat=parseFloat(document.getElementById('mLat').value),l
 function liveGPS(){if(!navigator.geolocation)return;stopGPS();wid=navigator.geolocation.watchPosition(p=>{let lat=p.coords.latitude,lng=p.coords.longitude,acc=p.coords.accuracy;document.getElementById('status').className='status ok';document.getElementById('status').textContent='Live GPS: ±'+(acc||0).toFixed(1)+' m';updateLiveBox(lat,lng,acc);showLiveMarker(lat,lng,acc);map.setView([lat,lng],19)},e=>{document.getElementById('status').className='status';toast(gpsErrorMsg(e))},{enableHighAccuracy:true,timeout:20000,maximumAge:0});toast('Live GPS started')}
 
 function stopGPS(){if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null;toast('GPS stopped')}}function undo(){P.pop();render()}function clearAll(){if(confirm('সব point মুছবেন?')){P.length=0;render()}}
-function dxf(){if(P.length<3)throw Error('DXF-এর জন্য কমপক্ষে 3টি point প্রয়োজন');let la=P.reduce((s,p)=>s+p.lat,0)/P.length,lo=P.reduce((s,p)=>s+p.lng,0)/P.length,c=Math.cos(rad(la)),X=p=>(p.lng-lo)*rad(1)*R*c,Y=p=>(p.lat-la)*rad(1)*R,o='0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n0\nLWPOLYLINE\n8\nBOUNDARY\n90\n'+P.length+'\n70\n1\n';P.forEach(p=>o+='10\n'+X(p).toFixed(4)+'\n20\n'+Y(p).toFixed(4)+'\n');P.forEach((p,i)=>o+='0\nTEXT\n8\nPOINTS\n10\n'+X(p).toFixed(3)+'\n20\n'+Y(p).toFixed(3)+'\n40\n0.8\n1\nP'+(i+1)+'\n');for(let i=0;i<P.length;i++){let j=(i+1)%P.length;o+='0\nTEXT\n8\nDIMENSIONS\n10\n'+((X(P[i])+X(P[j]))/2).toFixed(3)+'\n20\n'+((Y(P[i])+Y(P[j]))/2+1).toFixed(3)+'\n40\n0.8\n1\n'+distance(P[i],P[j]).toFixed(2)+' m\n'}o+='0\nTEXT\n8\nTEXT\n10\n0\n20\n0\n40\n1\n1\nHERITAGE ARCHITECTS - STRUCTURE SOLUTION & LAND SURVEY\n0\nENDSEC\n0\nEOF\n';return o}
+function hexid(n){return n.toString(16).toUpperCase()}
+function dxf(){if(P.length<3)throw Error('DXF-এর জন্য কমপক্ষে 3টি point প্রয়োজন');let hid=0x100;let la=P.reduce((s,p)=>s+p.lat,0)/P.length,lo=P.reduce((s,p)=>s+p.lng,0)/P.length,c=Math.cos(rad(la)),X=p=>(p.lng-lo)*rad(1)*R*c,Y=p=>(p.lat-la)*rad(1)*R;
+let o='0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n0\nENDSEC\n';
+o+='0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n4\n';
+['BOUNDARY','POINTS','DIMENSIONS','TEXT'].forEach(ly=>{o+='0\nLAYER\n2\n'+ly+'\n70\n0\n62\n7\n6\nCONTINUOUS\n'});
+o+='0\nENDTAB\n0\nENDSEC\n';
+o+='0\nSECTION\n2\nENTITIES\n';
+o+='0\nLWPOLYLINE\n5\n'+hexid(hid++)+'\n100\nAcDbEntity\n8\nBOUNDARY\n100\nAcDbPolyline\n90\n'+P.length+'\n70\n1\n';
+P.forEach(p=>o+='10\n'+X(p).toFixed(4)+'\n20\n'+Y(p).toFixed(4)+'\n');
+P.forEach((p,i)=>{o+='0\nTEXT\n5\n'+hexid(hid++)+'\n100\nAcDbEntity\n8\nPOINTS\n100\nAcDbText\n10\n'+X(p).toFixed(3)+'\n20\n'+Y(p).toFixed(3)+'\n40\n0.8\n1\nP'+(i+1)+'\n'});
+for(let i=0;i<P.length;i++){let j=(i+1)%P.length;o+='0\nTEXT\n5\n'+hexid(hid++)+'\n100\nAcDbEntity\n8\nDIMENSIONS\n100\nAcDbText\n10\n'+((X(P[i])+X(P[j]))/2).toFixed(3)+'\n20\n'+((Y(P[i])+Y(P[j]))/2+1).toFixed(3)+'\n40\n0.8\n1\n'+distance(P[i],P[j]).toFixed(2)+' m\n'}
+o+='0\nTEXT\n5\n'+hexid(hid++)+'\n100\nAcDbEntity\n8\nTEXT\n100\nAcDbText\n10\n0\n20\n0\n40\n1\n1\nHERITAGE ARCHITECTS - STRUCTURE SOLUTION & LAND SURVEY\n';
+o+='0\nENDSEC\n0\nEOF\n';
+return o}
 function downloadDXF(){try{let b=new Blob([dxf()],{type:'application/dxf'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Heritage_Land_Survey.dxf';a.click();toast('DXF downloaded')}catch(e){toast(e.message)}}
 function report(){let a=area(P),w=open('','_blank');w.document.write(`<html><body style="font-family:Arial;padding:30px"><h1>HERITAGE ARCHITECTS</h1><h2>STRUCTURE SOLUTION • LAND SURVEY</h2><p>Plot No-140, Flat No-3 D, Avenue-08, Block-E, Section-11, Thana-Pallabi, Mirpur, Dhaka-1216<br>Email: heritagearchitectsltd@gmail.com | Mobile: 01704-357889</p><hr><h2>LAND SURVEY REPORT</h2><p>Project: ${project.value}<br>Plot: ${plot.value}<br>Owner: ${owner.value}<br>Road: ${road.value}</p><h3>Area: ${a.toFixed(2)} m² | ${(a*10.7639104167).toFixed(2)} sqft | ${(a/40.468564224).toFixed(3)} Decimal | ${(a/66.8901).toFixed(3)} Katha</h3>${document.querySelector('table').outerHTML}<script>window.print()<\/script></body></html>`);w.document.close()}render();checkEnvironment();if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script></body></html>
